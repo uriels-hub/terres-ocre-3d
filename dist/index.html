@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#25241e">
+  <title>Terres d’ocre — Expédition</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <svg class="svg-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <symbol id="icon-water" viewBox="0 0 24 24"><path d="M12 3C10 7 5.5 11.2 5.5 15.2a6.5 6.5 0 0 0 13 0C18.5 11.2 14 7 12 3Z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M9 16a3 3 0 0 0 3 3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+      <symbol id="icon-scrap" viewBox="0 0 24 24"><path d="m5 7 5-3 9 4v9l-5 3-9-4V7Zm0 0 9 4 5-3M14 11v9M9 6l9 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+      <symbol id="icon-mark" viewBox="0 0 40 40"><path d="m20 3 16 9v16l-16 9-16-9V12L20 3Z" fill="none" stroke="currentColor"/><path d="m8 27 9-15 5 8 3-4 8 11H8Z" fill="currentColor"/><path d="M20 3v5M4 12l5 3m27-3-5 3M20 32v5" stroke="currentColor"/></symbol>
+      <symbol id="portrait-nara" viewBox="0 0 80 90"><path d="M0 90V0h80v90" fill="#67604d"/><path d="m10 90 8-24 17-9h14l17 12 9 21" fill="#b38c57"/><path d="m19 42 5-24 15-8 18 9 6 28-11 14H30Z" fill="#cfb187"/><path d="m28 31 8-6 15 6-2 22-9 8-10-9" fill="#986d49"/><path d="m20 39 11-6 20 3 10 8-9 15-10 7-14-11Z" fill="#c4b08c"/><path d="m25 38 15 5 16-3-6 7-19-2" fill="#443e32"/><path d="m23 63 14 13-8 14H14m35-25-8 11 9 14h20" fill="#79694c"/><path d="m60 12 3 78" stroke="#d1c09b" stroke-width="3"/><path d="m11 73 12-7" stroke="#423d31" stroke-width="6"/></symbol>
+      <symbol id="portrait-brak" viewBox="0 0 80 90"><path d="M0 0h80v90H0" fill="#544e43"/><path d="M5 90 9 62l19-10h24l19 10 6 28" fill="#494940"/><path d="m24 23 13-7 15 6 4 16-6 16-11 6-12-10-6-15" fill="#a0805c"/><path d="m22 27 5-13 15-4 15 9-1 12-11-9-14 7" fill="#34352f"/><path d="m27 43 11 5 13-4-5 13H34" fill="#5f5845"/><path d="m11 62 17-6 8 19-6 15H6m64-27-18-6-8 19 8 14h24" fill="#737164"/><path d="m22 59 16 7 15-7-5 31H29" fill="#353e39"/><path d="m9 66 16-4m30 1 15 5M31 76h18" stroke="#c4b08c" stroke-width="2"/><path d="m61 4-7 86" stroke="#858674" stroke-width="5"/></symbol>
+      <symbol id="portrait-ivo" viewBox="0 0 80 90"><path d="M0 0h80v90H0" fill="#515d56"/><path d="M9 90 15 64l18-8h13l18 9 8 25" fill="#484b42"/><path d="m28 17 23-4 7 11-2 29-10 8-16-6-7-27" fill="#a6aa95"/><path d="m27 23 23-4 5 6-1 12-28-1" fill="#6c7a6b"/><path d="m29 30 22-1v6l-22 1" fill="#272e2b"/><path d="m32 43 18-1-5 10-11-1" fill="#5a6256"/><path d="M36 58v10h9V58" fill="#b5b7a0"/><path d="m17 66 16-5 5 14-9 15H11m36-28 15 7 7 21H48l-7-15" fill="#778673"/><path d="m29 73 12 4 10-4-4 17H31" fill="#a0a48e"/><path d="m19 73-5 17m45-15 6 15" stroke="#b9ad8c" stroke-width="3"/></symbol>
+    </defs>
+  </svg>
+
+  <div id="viewport" aria-label="Vue 3D de la vallée désertique"></div>
+  <main id="game-hud" aria-label="Interface de l’expédition">
+    <div class="left-rail">
+      <header class="brand">
+        <svg class="brand-mark" aria-hidden="true"><use href="#icon-mark"/></svg>
+        <div><h1>Terres d’ocre</h1><p>Expédition <span>·</span> Vallée des vents</p></div>
+      </header>
+      <section class="objective-wrapper" aria-label="Objectif de l’expédition">
+      <details class="objective-panel" open>
+        <summary><span class="eyebrow">Votre objectif</span><span id="objective-progress">0/3</span></summary>
+        <p id="objective-text">Explorer la colonie et récupérer 3 réserves.</p>
+        <div class="objective-rule" aria-hidden="true"><span></span><span></span><span></span></div>
+      </details>
+      </section>
+    </div>
+
+    <aside class="supplies" aria-label="Ressources et temps">
+      <div class="resource"><svg aria-hidden="true"><use href="#icon-water"/></svg><div><span class="resource-label">Eau</span><strong id="water-value">72</strong></div></div>
+      <div class="resource"><svg aria-hidden="true"><use href="#icon-scrap"/></svg><div><span class="resource-label">Ferraille</span><strong id="scrap-value">0</strong></div></div>
+      <div class="time-block"><span class="resource-label">Temps de route</span><span id="day-time">Jour 1 · 06:00</span></div>
+      <button id="help-button" class="help-button" type="button" aria-label="Afficher l’aide et les commandes">?</button>
+    </aside>
+
+    <section class="squad-panel" aria-label="Votre escouade">
+      <div class="squad-heading"><span id="selection-label">Escouade complète</span><div class="squad-actions"><button id="select-all" type="button" title="Sélectionner toute l’escouade · G" aria-keyshortcuts="G">Tous</button><button id="focus-unit" type="button" title="Centrer la caméra sur la sélection · F" aria-keyshortcuts="F">Centrer</button></div></div>
+      <div class="unit-cards">
+        <button class="unit-card selected" data-unit="0" type="button" aria-pressed="true" aria-label="Sélectionner Nara, prospectrice" title="Sélectionner Nara · 1" aria-keyshortcuts="1">
+          <span class="unit-portrait"><svg aria-hidden="true"><use href="#portrait-nara"/></svg><span class="unit-number">01</span></span>
+          <span class="unit-info"><strong>Nara</strong><span class="unit-role">Prospectrice</span><span class="unit-status" id="unit-status-0">Au repos</span></span>
+          <span class="selection-indicator" aria-hidden="true"></span>
+        </button>
+        <button class="unit-card selected" data-unit="1" type="button" aria-pressed="true" aria-label="Sélectionner Brak, convoyeur" title="Sélectionner Brak · 2" aria-keyshortcuts="2">
+          <span class="unit-portrait"><svg aria-hidden="true"><use href="#portrait-brak"/></svg><span class="unit-number">02</span></span>
+          <span class="unit-info"><strong>Brak</strong><span class="unit-role">Convoyeur</span><span class="unit-status" id="unit-status-1">Au repos</span></span>
+          <span class="selection-indicator" aria-hidden="true"></span>
+        </button>
+        <button class="unit-card selected" data-unit="2" type="button" aria-pressed="true" aria-label="Sélectionner Ivo, automate" title="Sélectionner Ivo · 3" aria-keyshortcuts="3">
+          <span class="unit-portrait"><svg aria-hidden="true"><use href="#portrait-ivo"/></svg><span class="unit-number">03</span></span>
+          <span class="unit-info"><strong>Ivo</strong><span class="unit-role">Automate</span><span class="unit-status" id="unit-status-2">Au repos</span></span>
+          <span class="selection-indicator" aria-hidden="true"></span>
+        </button>
+      </div>
+    </section>
+
+    <div class="field-controls">
+      <button id="gather-button" class="gather-button" type="button" title="Récupérer une réserve à proximité · E" aria-keyshortcuts="E" disabled><span class="keycap">E</span> Récupérer</button>
+      <div class="time-controls"><button id="pause-button" type="button" aria-pressed="false" title="Mettre en pause ou reprendre · Espace" aria-keyshortcuts="Space">Pause <span class="keycap">Espace</span></button><button id="speed-button" type="button" aria-label="Changer la vitesse de simulation" title="Vitesse de simulation : ×1, ×2 ou ×3">×1</button></div>
+    </div>
+
+    <aside class="minimap-panel" aria-label="Carte de la vallée">
+      <div class="minimap-heading"><span class="eyebrow">Vallée des vents</span><span class="north-mark">N</span></div>
+      <canvas id="minimap" width="180" height="150" aria-label="Position de l’escouade et lieux de la vallée" title="Cliquer sur la carte pour y centrer la caméra"></canvas>
+      <p class="map-legend"><span><i class="legend-dot squad-dot"></i>Escouade</span><span><i class="legend-dot reserve-dot"></i>Réserves</span></p>
+    </aside>
+
+    <p class="command-hint"><span>Clic sol <b>déplacer</b></span><span>Clic personnage <b>sélectionner</b></span><span>Maj + clic <b>ajouter</b></span><span>Molette <b>zoom</b></span><span>Glisser droit <b>tourner</b></span><span>WASD / ZQSD <b>caméra</b></span></p>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </main>
+
+  <section id="loading-overlay" aria-label="Commencer l’expédition">
+    <div class="loading-vignette"></div>
+    <div class="loading-content">
+      <svg class="loading-mark" aria-hidden="true"><use href="#icon-mark"/></svg>
+      <p class="eyebrow loading-eyebrow">Une expédition dans les terres arides</p>
+      <h2>Terres<br><em>d’ocre.</em></h2>
+      <p class="loading-tagline">Le désert ne vous attendra pas.</p>
+      <div class="loading-divider"></div>
+      <p class="loading-description">Trois voyageurs. Une vallée oubliée.<br>Explorez la colonie et rassemblez des réserves pour poursuivre votre route.</p>
+      <button id="start-button" type="button" disabled>Commencer l’expédition</button>
+      <p id="loading-status" role="status">Préparation de l’expédition…</p>
+    </div>
+    <p class="loading-location"><span>01 /</span> Vallée des vents</p>
+  </section>
+
+  <dialog id="help-dialog" aria-labelledby="help-title">
+    <div class="dialog-heading"><div><p class="eyebrow">Carnet de route</p><h2 id="help-title">Mener l’expédition</h2></div><button id="close-help" type="button" aria-label="Fermer l’aide">Fermer</button></div>
+    <p class="help-intro">Explorez la colonie et récupérez trois réserves. Cliquez directement sur un bidon ou des débris pour y envoyer votre sélection. À proximité, choisissez <strong>Récupérer</strong> ou appuyez sur <kbd>E</kbd>.</p>
+    <dl class="help-commands">
+      <div><dt>Clic sur le sol</dt><dd>Déplacer la sélection</dd></div>
+      <div><dt>Clic sur un personnage</dt><dd>Sélectionner ce voyageur</dd></div>
+      <div><dt><kbd>Maj</kbd> + clic</dt><dd>Ajouter à la sélection</dd></div>
+      <div><dt><kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd></dt><dd>Sélectionner Nara, Brak ou Ivo</dd></div>
+      <div><dt><kbd>G</kbd></dt><dd>Sélectionner toute l’escouade</dd></div>
+      <div><dt><kbd>F</kbd></dt><dd>Centrer la caméra sur la sélection</dd></div>
+      <div><dt><kbd>E</kbd></dt><dd>Récupérer une réserve à proximité</dd></div>
+      <div><dt>Molette</dt><dd>Rapprocher ou éloigner la caméra</dd></div>
+      <div><dt>Glisser avec le bouton droit</dt><dd>Faire tourner la caméra</dd></div>
+      <div><dt><kbd>WASD</kbd> / <kbd>ZQSD</kbd></dt><dd>Déplacer la caméra</dd></div>
+      <div><dt><kbd>Espace</kbd></dt><dd>Mettre en pause ou reprendre</dd></div>
+      <div><dt>Écran tactile</dt><dd>Toucher le sol pour déplacer. Glisser avec deux doigts pour tourner la vue.</dd></div>
+    </dl>
+    <p class="help-note">Les portraits permettent aussi de sélectionner vos voyageurs. « Tous » rassemble la sélection ; « Centrer » retrouve votre escouade.</p>
+    <div class="help-save"><p>La progression est sauvegardée automatiquement dans ce navigateur. Recommencer efface cette expédition locale.</p><button id="reset-button" type="button">Recommencer l’expédition</button></div>
+  </dialog>
+  <section id="error-panel" class="error-panel" role="alert" hidden><h2>L’expédition ne peut pas démarrer</h2><p id="error-message"></p><p>Vous pouvez recharger la page pour réessayer.</p></section>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
+

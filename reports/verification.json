@@ -1,0 +1,91 @@
+{
+  "checked_date": "2026-11-19",
+  "engine": {
+    "library": "Three.js",
+    "version": "0.170.0",
+    "renderer": "WebGL 2",
+    "runtime_external_dependencies": false
+  },
+  "syntax": {
+    "passed": true,
+    "files": [
+      "dist/js/main.js",
+      "dist/js/world.js",
+      "dist/js/characters.js",
+      "dist/js/navigation.js",
+      "server.mjs"
+    ]
+  },
+  "navigation": {
+    "command": "node --test tests/navigation.test.mjs",
+    "passed": 7,
+    "failed": 0,
+    "initial_resource_routes": 36,
+    "resource_to_resource_routes": 72,
+    "interiors_entered_and_exited": 8,
+    "interrupted_movement_samples": 32,
+    "regressions": 2,
+    "segment_verification": "Independent obstacle-distance sampling every 0.035 units"
+  },
+  "browser": {
+    "name": "Microsoft Edge headless",
+    "webgl_backend": "SwiftShader",
+    "viewports": [
+      {
+        "width": 1440,
+        "height": 900,
+        "horizontal_overflow": false
+      },
+      {
+        "width": 390,
+        "height": 844,
+        "horizontal_overflow": false
+      }
+    ],
+    "textures_loaded": 4,
+    "javascript_errors": 0,
+    "resource_errors": 0,
+    "webgl_error_panel": false,
+    "scene_observation": {
+      "draw_calls": 389,
+      "triangles": 53388,
+      "performance_benchmark": false
+    }
+  },
+  "gameplay": {
+    "physical_ground_click": true,
+    "actual_character_movement": true,
+    "portrait_selection": true,
+    "group_selection": true,
+    "paused_clock_stable": true,
+    "speed_cycle": [
+      2,
+      3,
+      1
+    ],
+    "wheel_zoom": true,
+    "water_collection_increased_reserve": true,
+    "water_and_scrap_collected": true,
+    "three_caches_collected": true,
+    "settlement_discovered": true,
+    "objective_completed": true,
+    "save_reload_restored_progress_and_position": true,
+    "reset_restored_all_characters_and_caches": true
+  },
+  "keyboard": {
+    "tab_preserves_browser_focus_navigation": true,
+    "g_selects_squad": true,
+    "space_activates_focused_button_once": true,
+    "enter_activates_focused_button_once": true
+  },
+  "local_launcher": {
+    "start_ps1_passed": true,
+    "test_port": 4174,
+    "http_status": 200,
+    "stop_ps1_passed": true
+  },
+  "limits": [
+    "Mobile viewport emulation, not a physical device performance test.",
+    "This prototype covers exploration and resources; combat, crafting, enemies and base building are not implemented."
+  ]
+}
