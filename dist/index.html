@@ -42,6 +42,34 @@
       <button id="help-button" class="help-button" type="button" aria-label="Afficher l’aide et les commandes">?</button>
     </aside>
 
+    <div class="camera-dock">
+      <button id="camera-toggle" type="button" aria-expanded="false" aria-controls="camera-panel" title="Afficher les commandes de rotation, d’inclinaison et de zoom"><span class="camera-toggle-mark" aria-hidden="true"></span>Caméra 360°</button>
+      <section id="camera-panel" class="camera-panel" aria-label="Caméra" hidden>
+        <div class="camera-panel-heading"><h2>Caméra 360°</h2><span class="camera-orbit-mark" aria-hidden="true">360°</span></div>
+        <p id="camera-heading" class="camera-heading">Orientation 319°</p>
+        <div class="camera-control-row" role="group" aria-label="Rotation horizontale">
+          <span class="camera-control-label">Rotation</span>
+          <button id="camera-left" type="button" title="Tourner la caméra vers la gauche · flèche gauche" aria-label="Tourner la caméra vers la gauche" aria-keyshortcuts="ArrowLeft">Gauche</button>
+          <button id="camera-right" type="button" title="Tourner la caméra vers la droite · flèche droite" aria-label="Tourner la caméra vers la droite" aria-keyshortcuts="ArrowRight">Droite</button>
+        </div>
+        <div class="camera-control-row" role="group" aria-label="Inclinaison de la caméra">
+          <span class="camera-control-label">Inclinaison</span>
+          <button id="camera-up" type="button" title="Incliner la caméra vers le haut · flèche haut" aria-label="Incliner la caméra vers le haut" aria-keyshortcuts="ArrowUp">Haut</button>
+          <button id="camera-down" type="button" title="Incliner la caméra vers le bas · flèche bas" aria-label="Incliner la caméra vers le bas" aria-keyshortcuts="ArrowDown">Bas</button>
+        </div>
+        <div class="camera-control-row" role="group" aria-label="Distance de la caméra">
+          <span class="camera-control-label">Zoom</span>
+          <button id="camera-zoom-in" class="camera-zoom-button" type="button" title="Rapprocher la caméra" aria-label="Rapprocher la caméra">+</button>
+          <button id="camera-zoom-out" class="camera-zoom-button" type="button" title="Éloigner la caméra" aria-label="Éloigner la caméra">−</button>
+        </div>
+        <div class="camera-actions">
+          <button id="camera-reset" type="button" title="Rétablir la vue initiale · R" aria-keyshortcuts="R">Vue initiale</button>
+          <button id="camera-follow" type="button" aria-pressed="false" title="Suivre les voyageurs sélectionnés">Suivre</button>
+        </div>
+        <p class="camera-panel-note">Maintenez une commande pour ajuster la vue.</p>
+      </section>
+    </div>
+
     <section class="squad-panel" aria-label="Votre escouade">
       <div class="squad-heading"><span id="selection-label">Escouade complète</span><div class="squad-actions"><button id="select-all" type="button" title="Sélectionner toute l’escouade · G" aria-keyshortcuts="G">Tous</button><button id="focus-unit" type="button" title="Centrer la caméra sur la sélection · F" aria-keyshortcuts="F">Centrer</button></div></div>
       <div class="unit-cards">
@@ -74,7 +102,7 @@
       <p class="map-legend"><span><i class="legend-dot squad-dot"></i>Escouade</span><span><i class="legend-dot reserve-dot"></i>Réserves</span></p>
     </aside>
 
-    <p class="command-hint"><span>Clic sol <b>déplacer</b></span><span>Clic personnage <b>sélectionner</b></span><span>Maj + clic <b>ajouter</b></span><span>Molette <b>zoom</b></span><span>Glisser droit <b>tourner</b></span><span>WASD / ZQSD <b>caméra</b></span></p>
+    <p class="command-hint"><span>Clic sol <b>déplacer</b></span><span>Clic personnage <b>sélectionner</b></span><span>Maj + clic <b>ajouter</b></span><span>Molette <b>zoom</b></span><span>Glisser droit / flèches <b>vue 360°</b></span><span>WASD / ZQSD <b>déplacer la vue</b></span></p>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
   </main>
 
@@ -105,10 +133,13 @@
       <div><dt><kbd>F</kbd></dt><dd>Centrer la caméra sur la sélection</dd></div>
       <div><dt><kbd>E</kbd></dt><dd>Récupérer une réserve à proximité</dd></div>
       <div><dt>Molette</dt><dd>Rapprocher ou éloigner la caméra</dd></div>
-      <div><dt>Glisser avec le bouton droit</dt><dd>Faire tourner la caméra</dd></div>
+      <div><dt>Glisser avec le bouton droit</dt><dd>Rotation horizontale libre sur 360° et inclinaison</dd></div>
+      <div><dt>Flèches du clavier</dt><dd>Faire tourner et incliner la caméra</dd></div>
       <div><dt><kbd>WASD</kbd> / <kbd>ZQSD</kbd></dt><dd>Déplacer la caméra</dd></div>
+      <div><dt><kbd>R</kbd></dt><dd>Retrouver la vue initiale</dd></div>
+      <div><dt>Caméra 360° · Suivre</dt><dd>Garder les voyageurs sélectionnés au centre de la vue</dd></div>
       <div><dt><kbd>Espace</kbd></dt><dd>Mettre en pause ou reprendre</dd></div>
-      <div><dt>Écran tactile</dt><dd>Toucher le sol pour déplacer. Glisser avec deux doigts pour tourner la vue.</dd></div>
+      <div><dt>Écran tactile</dt><dd>Toucher le sol pour déplacer. Glisser avec deux doigts pour tourner et incliner la vue ; pincer pour zoomer.</dd></div>
     </dl>
     <p class="help-note">Les portraits permettent aussi de sélectionner vos voyageurs. « Tous » rassemble la sélection ; « Centrer » retrouve votre escouade.</p>
     <div class="help-save"><p>La progression est sauvegardée automatiquement dans ce navigateur. Recommencer efface cette expédition locale.</p><button id="reset-button" type="button">Recommencer l’expédition</button></div>

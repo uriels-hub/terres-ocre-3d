@@ -1,0 +1,54 @@
+{
+  "checked_date": "2026-11-19",
+  "version": "0.2.0",
+  "automated_tests": {
+    "command": "npm test",
+    "passed": 20,
+    "failed": 0,
+    "camera_tests": 13,
+    "navigation_tests": 7,
+    "syntax_check": "npm run check",
+    "syntax_passed": true
+  },
+  "browser": {
+    "name": "Microsoft Edge headless",
+    "renderer": "WebGL 2 / SwiftShader",
+    "viewports": [
+      {
+        "width": 1440,
+        "height": 900,
+        "panel_inside_viewport": true
+      },
+      {
+        "width": 390,
+        "height": 844,
+        "panel_inside_viewport": true
+      }
+    ],
+    "javascript_errors": 0
+  },
+  "camera": {
+    "continuous_horizontal_rotation": true,
+    "native_right_drags_cumulative_degrees": 593,
+    "hold_controls": true,
+    "releasing_hold_stops_rotation": true,
+    "tilt_and_zoom": true,
+    "keyboard_arrows": true,
+    "rotation_while_simulation_paused": true,
+    "pause_preserves_simulation_time": true,
+    "selection_follow_while_walking": true,
+    "manual_pan_disables_follow": true,
+    "button_and_r_reset": true,
+    "two_finger_rotation_tilt_and_pinch": true,
+    "new_gesture_recovers_after_touch_cancellation": true,
+    "no_unintended_unit_orders_from_camera_gestures": true
+  },
+  "save": {
+    "camera_and_selection_restored": true,
+    "legacy_save_without_camera_fields_supported": true
+  },
+  "limits": [
+    "Touch events tested through browser device emulation, not a physical handset.",
+    "Vertical inclination is bounded to avoid camera flips; unrestricted rotation is horizontal."
+  ]
+}

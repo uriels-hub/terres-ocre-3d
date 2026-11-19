@@ -1,7 +1,7 @@
 {
   "name": "terres-ocre-browser-3d",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "scripts": { "start": "node server.mjs", "check": "node --check dist/js/main.js && node --check dist/js/world.js && node --check dist/js/characters.js && node --check dist/js/navigation.js", "test": "node --test tests/navigation.test.mjs" }
+  "scripts": { "start": "node server.mjs", "check": "node --check dist/js/main.js && node --check dist/js/world.js && node --check dist/js/characters.js && node --check dist/js/navigation.js && node --check dist/js/camera.js", "test": "node --test" }
 }

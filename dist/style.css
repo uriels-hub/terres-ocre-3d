@@ -20,3 +20,32 @@
 .help-save p{font-size:12px;line-height:1.7;color:var(--muted);margin:0 0 15px}
 #reset-button{border:1px solid #b0986b70;background:transparent;color:#d8c4a0;padding:11px 14px;font-size:14px;min-height:42px}
 @media(prefers-reduced-motion:reduce){#loading-overlay,.toast{transition:none}}
+
+/* Commandes de camera : le panneau capte les gestes, le reste du HUD laisse la vue libre. */
+.camera-dock{position:absolute;top:108px;right:28px;width:292px;display:flex;flex-direction:column;align-items:flex-end;gap:8px;z-index:4;pointer-events:none}
+#camera-toggle{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:36px;padding:9px 12px;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(12px);font-size:12px;line-height:1.2;white-space:nowrap;pointer-events:auto}
+#camera-toggle[aria-expanded=true]{border-color:var(--ochre);color:#e9d3a8;background:var(--panel-strong)}
+.camera-toggle-mark{position:relative;width:14px;height:14px;border:1px solid currentColor;border-radius:50%;opacity:.8}
+.camera-toggle-mark:before{content:"";position:absolute;inset:3px;border:1px solid currentColor;border-radius:50%}
+.camera-toggle-mark:after{content:"";position:absolute;top:5px;left:-3px;width:18px;height:2px;background:currentColor;transform:rotate(-35deg);opacity:.75}
+.camera-panel{width:292px;padding:16px;background:var(--panel-strong);border:1px solid var(--line);border-top:2px solid var(--ochre);box-shadow:0 12px 30px #0003;backdrop-filter:blur(14px);pointer-events:auto;touch-action:none;user-select:none}
+#camera-panel[hidden]{display:none}
+.camera-panel-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.camera-panel h2{font:normal 21px/1.15 Georgia,'Times New Roman',serif;margin:0;color:var(--paper)}
+.camera-orbit-mark{width:34px;height:34px;border:1px solid #b9a47365;border-radius:50%;display:grid;place-items:center;font-size:12px;color:var(--ochre);letter-spacing:-.04em}
+.camera-heading{font-size:12px;color:var(--muted);margin:2px 0 17px;font-variant-numeric:tabular-nums;letter-spacing:.035em}
+.camera-control-row{display:grid;grid-template-columns:76px 1fr 1fr;gap:6px;align-items:center;margin-top:6px}
+.camera-control-label{font-size:12px;color:var(--muted)}
+.camera-panel button{height:38px;border:1px solid var(--line);background:#ffffff04;padding:7px 8px;font-size:12px;line-height:1.2;pointer-events:auto;touch-action:none;user-select:none}
+.camera-panel button:active,.camera-panel button.is-held{background:#8d794d66;border-color:var(--ochre);color:#f0dbac}
+.camera-panel button:focus-visible,#camera-toggle:focus-visible{outline:2px solid #eed79e;outline-offset:3px}
+.camera-panel .camera-zoom-button{font-size:22px;line-height:1;padding:3px 8px}
+.camera-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:14px;padding-top:13px;border-top:1px solid var(--line)}
+#camera-follow[aria-pressed=true]{background:#6373575c;border-color:#a5b491;color:#dce8cd}
+.camera-panel-note{font-size:12px;line-height:1.5;color:var(--muted);margin:12px 0 0}
+@media(min-width:1600px){.camera-dock{top:120px;right:36px}}
+@media(max-width:1100px){.camera-dock{right:20px;top:105px}}
+@media(max-width:780px){.camera-dock{right:16px;top:88px}.camera-panel{width:276px;padding:14px}.camera-control-row{grid-template-columns:72px 1fr 1fr}}
+@media(max-width:590px){.camera-dock{right:12px;top:72px;width:min(292px,calc(100vw - 24px))}.camera-panel{width:100%;padding:14px}.camera-panel h2{font-size:20px}.camera-panel button{height:40px}.camera-panel-note{margin-top:10px}.camera-heading{margin-bottom:13px}.camera-actions{margin-top:12px;padding-top:11px}#camera-toggle{min-height:35px;padding:9px 11px;font-size:12px}#game-hud:has(#camera-panel:not([hidden])) .objective-wrapper{visibility:hidden}}
+@media(max-height:620px){.camera-dock{top:87px}.camera-panel{max-height:calc(100dvh - 237px);overflow-y:auto;overscroll-behavior:contain}.camera-panel button{height:34px}.camera-heading{margin-bottom:10px}.camera-actions{margin-top:10px;padding-top:10px}.camera-panel-note{margin-top:9px}}
+@media(max-width:590px) and (max-height:620px){.camera-dock{top:66px}.camera-panel{max-height:calc(100dvh - 286px)}}

@@ -43,7 +43,11 @@ Le but de l’expédition est de découvrir la colonie et de récupérer trois r
 | G ou « Tous » | Sélectionner les trois personnages |
 | F ou « Centrer » | Retrouver la sélection avec la caméra |
 | Molette | Zoom |
-| Glisser bouton droit | Rotation et inclinaison de la caméra |
+| Glisser bouton droit | Rotation libre à 360° et inclinaison de la caméra |
+| Touches fléchées | Tourner à gauche/droite et régler l’inclinaison |
+| « Caméra 360° » | Ouvrir les commandes de rotation, d’inclinaison et de zoom ; maintenir un bouton pour continuer |
+| « Suivre » | Suivre le centre des personnages sélectionnés pendant leur déplacement |
+| R ou « Vue initiale » | Rétablir l’orientation, le zoom et la cible de départ |
 | Bouton central ou glisser tactile | Déplacer la vue |
 | WASD / ZQSD | Déplacer la caméra |
 | E ou « Récupérer » | Prendre une réserve à proximité |
@@ -52,9 +56,11 @@ Le but de l’expédition est de découvrir la colonie et de récupérer trois r
 | Échap | Annuler l’ordre de déplacement |
 | Clic sur la minimap | Déplacer le centre de la caméra |
 
-Sur écran tactile : toucher pour donner un ordre, glisser avec un doigt pour déplacer la vue, deux doigts pour tourner et pincer pour zoomer. Les portraits et boutons fournissent la sélection, la récupération, la pause et la vitesse. La minimap est masquée sur les petits écrans.
+Sur écran tactile : toucher pour donner un ordre, glisser avec un doigt pour déplacer la vue, glisser avec deux doigts pour tourner et incliner, et pincer pour zoomer. Faire pivoter les deux doigts fait aussi tourner la caméra. Les portraits et boutons fournissent la sélection, la récupération, la pause et la vitesse. La minimap est masquée sur les petits écrans.
 
-La progression est sauvegardée automatiquement dans le stockage local du navigateur, environ toutes les huit secondes et à chaque récolte. L’aide « ? » contient « Recommencer l’expédition ». Quitter l’onglet met la simulation en pause ; revenir permet de la reprendre.
+La caméra tourne sans limite horizontale, avec des transitions progressives. L’inclinaison reste bornée pour éviter les retournements et la vue reste au-dessus du terrain. La rotation et le zoom conservent le suivi ; déplacer manuellement la vue ou cliquer sur la minimap l’interrompt. Les commandes de caméra restent utilisables lorsque la simulation est en pause. « Centrer » adapte le cadrage à la dispersion des personnages sélectionnés et aux proportions de l’écran.
+
+La progression, la sélection et la vue de caméra sont sauvegardées automatiquement dans le stockage local du navigateur, environ toutes les huit secondes et à chaque récolte. Les anciennes sauvegardes restent utilisables. L’aide « ? » contient « Recommencer l’expédition ». Quitter l’onglet met la simulation en pause ; revenir permet de la reprendre.
 
 ## Contenu
 
@@ -75,11 +81,13 @@ Cette première version porte sur l’exploration. Elle ne comprend pas encore d
 | `dist/js/world.js` | Terrain, colonie, lieux, ressources et obstacles |
 | `dist/js/characters.js` | Modèles procéduraux et animation articulée |
 | `dist/js/navigation.js` | Grille A*, index spatial et collisions de trajet |
+| `dist/js/camera.js` | Orbite à 360°, cadrage, suivi et dégagement du terrain |
 | `dist/index.html`, `dist/style.css` | Interface et aide |
 | `dist/assets/` | Textures et concept issus du kit artistique |
 | `dist/vendor/` | Three.js 0.170.0, version locale et licence MIT |
 | `server.mjs` | Serveur HTTP local sans dépendance npm |
 | `tests/navigation.test.mjs` | Régressions de navigation et accessibilité des lieux |
+| `tests/camera.test.mjs` | Rotation, cadrage, suivi, limites et restauration de caméra |
 
 Aucune installation npm ni compilation n’est nécessaire. Three.js et les assets sont servis localement, sans appel à un CDN pendant le jeu. Le rendu s’appuie sur les API documentées par le [projet Three.js](https://threejs.org/docs/). La licence de la bibliothèque est conservée dans `dist/vendor/THREE-LICENSE.txt`.
 
@@ -91,6 +99,10 @@ npm test
 ```
 
 Sept tests de navigation vérifient les approches des neuf ressources depuis les positions initiales, les trajets entre ressources, l’entrée et la sortie des huit bâtiments, les changements d’ordre et deux régressions de collision. Chaque segment est contrôlé indépendamment par échantillonnage de la distance aux obstacles.
+
+Treize tests de caméra vérifient les tours complets, le passage entre deux angles voisins à la limite de ±180°, le cadrage en portrait et paysage, le suivi, le retour à la vue initiale, les données de sauvegarde invalides et le dégagement au-dessus du terrain. `npm test` exécute les vingt tests.
+
+La [revue navigateur de la caméra](reports/camera-verification.json) couvre plusieurs tours complets au clic droit, les boutons maintenus, les touches fléchées, les gestes à deux doigts, le suivi pendant la marche et la restauration de la vue. Les gestes de caméra n’ont produit aucun ordre de déplacement involontaire pendant ces essais.
 
 Une revue réelle a été effectuée dans Microsoft Edge, avec WebGL 2 via SwiftShader, en vues 1 440 × 900 et 390 × 844. Le démarrage, les quatre textures, le clic au sol, le déplacement, la sélection, la pause, les vitesses, le zoom et la récolte ont été vérifiés. Une expédition complète a atteint l’objectif ; le rechargement a restauré sa progression et « Recommencer » l’a réinitialisée. Ces essais ne constituent pas une mesure de performances sur un téléphone physique. Voir [le compte rendu](reports/verification.json).
 
