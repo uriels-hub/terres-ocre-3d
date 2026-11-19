@@ -2,6 +2,43 @@
  * Original desert settlement for the browser prototype.
  * Three.js is supplied by the application; this module has no network imports.
  */
+export function addDesertLight(THREE, scene, shadowSize) {
+  scene.fog = new THREE.FogExp2(0xd8b99c, 0.0072);
+  scene.background = new THREE.Color(0xd8b99c);
+  scene.add(new THREE.HemisphereLight(0xc8dfeb, 0x977252, 1.75));
+  const sun = new THREE.DirectionalLight(0xffdaae, 2.65);
+  sun.position.set(-57, 45, 22);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(shadowSize, shadowSize);
+  Object.assign(sun.shadow.camera, {left:-65, right:65, top:65, bottom:-65, near:1, far:190});
+  sun.shadow.normalBias = .035;
+  sun.shadow.bias = -.0002;
+  scene.add(sun);
+  const material = new THREE.ShaderMaterial({
+    side: THREE.BackSide,
+    depthWrite: false,
+    uniforms: {sunDirection: {value: sun.position.clone().normalize()}},
+    vertexShader: 'varying vec3 p; void main(){p=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+    fragmentShader: `
+      uniform vec3 sunDirection;
+      varying vec3 p;
+      void main() {
+        vec3 ray = normalize(p);
+        float h = pow(clamp(ray.y * 1.5, 0., 1.), .57);
+        vec3 skyColor = mix(vec3(.79,.57,.39), vec3(.18,.36,.46), h);
+        float facing = max(dot(ray,sunDirection), 0.);
+        skyColor += vec3(.68,.39,.13) * pow(facing, 22.);
+        skyColor += vec3(3.0,2.4,1.6) * smoothstep(.99962,.99985,facing);
+        gl_FragColor = vec4(skyColor,1.);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`
+  });
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(360,24,12), material);
+  sky.name = 'Ciel';
+  scene.add(sky);
+}
+
 export function createWorld(THREE, textures = {}) {
   const group = new THREE.Group();
   group.name = 'DesertWorld';
@@ -64,6 +101,23 @@ export function createWorld(THREE, textures = {}) {
   const positions = terrainGeometry.attributes.position;
   const terrainColors = new Float32Array(positions.count * 3);
   const color = new THREE.Color();
+  const trails = [
+    [[-29,25],[-20,21],[-13,17],[-10,10],[-8,6],[-2,2],[2,-5],[9,-7]],
+    [[-33,-20],[-24,-18],[-17,-10],[-12,-8],[-3,-8],[9,-7],[22,-10],[37,-7]],
+    [[30,28],[24,22],[15,17],[8,14],[8,9],[10,3],[9,-7],[11,-17],[17,-28]],
+  ];
+  function trailDistance(x,z) {
+    let nearest = Infinity;
+    for (const route of trails) {
+      for (let i = 1; i < route.length; i++) {
+        const [ax, az] = route[i-1], [bx, bz] = route[i];
+        const dx = bx-ax, dz = bz-az;
+        const t = THREE.MathUtils.clamp(((x-ax)*dx+(z-az)*dz)/(dx*dx+dz*dz),0,1);
+        nearest = Math.min(nearest, Math.hypot(x-ax-t*dx,z-az-t*dz));
+      }
+    }
+    return nearest;
+  }
   for (let index = 0; index < positions.count; index++) {
     const x = positions.getX(index);
     const z = positions.getZ(index);
@@ -72,8 +126,11 @@ export function createWorld(THREE, textures = {}) {
     const variation = 0.035 * Math.sin(x * 0.12 + z * 0.09)
       + 0.025 * Math.cos(z * 0.18 - x * 0.07);
     const highland = smoothstep(1.5, 5, heights[index]);
-    color.setRGB(0.96 + variation, 0.91 + variation - highland * 0.065,
-      0.82 + variation - highland * 0.09);
+    const trail = 1 - smoothstep(1.1, 2.9, trailDistance(x,z) + variation * 8);
+    const dust = .065 * Math.sin(x * .25 + z * .16 + 2.4 * Math.sin(z * .1));
+    color.setRGB(.86 + variation + dust + trail * .15,
+      .68 + variation + dust - highland * .13 + trail * .24,
+      .49 + variation + dust - highland * .14 + trail * .33);
     color.toArray(terrainColors, index * 3);
   }
   positions.needsUpdate = true;
@@ -111,23 +168,24 @@ export function createWorld(THREE, textures = {}) {
   const rockMap = repeatedTexture(textures.stone, 1.7, 1.7);
   const adobeMap = repeatedTexture(textures.stone, 1.1, 1.1);
   const rustMap = repeatedTexture(textures.rust, 1.3, 1.3);
-  const clothMap = repeatedTexture(textures.cloth, 2, 2);
   const material = (colorValue, map = null, extra = {}) => new THREE.MeshStandardMaterial({
     color: colorValue, map, roughness: 0.96, metalness: 0, ...extra,
   });
   const materials = {
     sand: material(sandMap ? 0xffffff : 0xc5aa7d, sandMap, { vertexColors: true }),
-    adobe: material(adobeMap ? 0xe3c8a5 : 0xbca17c, adobeMap),
-    paleAdobe: material(adobeMap ? 0xf0dbc0 : 0xc9b394, adobeMap),
+    adobe: material(adobeMap ? 0xe7ad87 : 0xbf8969, adobeMap),
+    paleAdobe: material(adobeMap ? 0xffe5b6 : 0xd4bc91, adobeMap),
     stone: material(rockMap ? 0xd3ae89 : 0xa98765, rockMap),
     darkStone: material(rockMap ? 0xbca68c : 0x92785c, rockMap),
     rust: material(rustMap ? 0xd9c2a9 : 0x846850, rustMap, { metalness: 0.14 }),
     iron: material(0x484b43, null, { roughness: 0.8, metalness: 0.38 }),
     paleMetal: material(0x929488, null, { roughness: 0.75, metalness: 0.4 }),
-    patina: material(0x657d71, null, { roughness: 0.84, metalness: 0.16 }),
+    patina: material(0x527f7b, null, { roughness: 0.82, metalness: 0.18 }),
     water: material(0x4b9293, null, { roughness: 0.66, metalness: 0.16 }),
-    cloth: material(clothMap ? 0xf0d6a9 : 0xbcb29a, clothMap, { side: THREE.DoubleSide }),
-    ochreCloth: material(clothMap ? 0xd2a577 : 0xa16746, clothMap, { side: THREE.DoubleSide }),
+    sail: material(0xffffff, null, { side: THREE.DoubleSide, vertexColors: true }),
+    oxblood: material(0x90452f),
+    lime: material(0xe6cf9d),
+    shale: material(0x795448, rockMap),
     timber: material(0x756452),
     dark: material(0x282d29),
     brush: material(0x8c8060, null, { side: THREE.DoubleSide }),
@@ -146,18 +204,46 @@ export function createWorld(THREE, textures = {}) {
     rock: new THREE.DodecahedronGeometry(1, 0),
     mesa: new THREE.CylinderGeometry(1, 1.18, 1, 7),
     ring: new THREE.TorusGeometry(1, 0.09, 5, 16),
-    flag: new THREE.PlaneGeometry(1, 1),
   };
-  const canopyGeometry = new THREE.BufferGeometry();
-  canopyGeometry.setAttribute('position', new THREE.Float32BufferAttribute([
-    -0.5, 0, -0.5, 0.5, 0.045, -0.5, 0.5, 0, 0.5,
-    -0.5, 0.06, 0.5, 0, -0.13, 0,
-  ], 3));
-  canopyGeometry.setAttribute('uv', new THREE.Float32BufferAttribute([
-    0, 0, 1, 0, 1, 1, 0, 1, 0.5, 0.5,
-  ], 2));
-  canopyGeometry.setIndex([0, 4, 1, 1, 4, 2, 2, 4, 3, 3, 4, 0]);
-  canopyGeometry.computeVertexNormals();
+
+  // Pigment follows the stitched panels of the cloth, including its curved hem.
+  function wovenSail(base, ink, border, vertical = false) {
+    const cols = 32, rows = 16;
+    const vertices = [], colors = [];
+    const shades = [base, ink, border].map(value => new THREE.Color(value));
+    function point(u, v) {
+      if (vertical) {
+        return [u, .5-v-.13*u*u + .055*Math.sin(7*u+v*3)*u,
+          (.11*Math.sin(9*u-v*2)+.08*u)*u];
+      }
+      const sag = Math.sin(Math.PI*u) * (0.68 + 0.32*Math.sin(Math.PI*v));
+      return [u-.5, u*.25-v*.16 - .44*sag + .045*Math.sin(u*24)*Math.sin(v*Math.PI), v-.5];
+    }
+    for (let j=0;j<rows;j++) {
+      for (let i=0;i<cols;i++) {
+        const u = (i+.5)/cols, v=(j+.5)/rows;
+        const edge = Math.min(j,rows-1-j);
+        const stair = Math.abs((i%8)-3.5);
+        const diamond = Math.abs(u-.5)*2.2 + Math.abs(v-.5);
+        let pigment = 0;
+        if (edge === 1 || (edge === 3 && stair<2) || (diamond>.20 && diamond<.31)) pigment = 1;
+        if (edge === 0 || (edge === 2 && stair>1) || diamond<.105) pigment = 2;
+        const c = shades[pigment].clone().multiplyScalar(.92+.08*Math.sin(i*.65)+.04*(j%2));
+        const a=point(i/cols,j/rows), b=point((i+1)/cols,j/rows);
+        const d=point(i/cols,(j+1)/rows), e=point((i+1)/cols,(j+1)/rows);
+        vertices.push(...a,...d,...e,...a,...e,...b);
+        for (let corner=0;corner<6;corner++) colors.push(c.r,c.g,c.b);
+      }
+    }
+    const fabric = new THREE.BufferGeometry();
+    fabric.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+    fabric.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+    fabric.computeVertexNormals();
+    return fabric;
+  }
+  const indigoSail = wovenSail(0x315f67,0xdfc198,0xab6745);
+  const redSail = wovenSail(0xab5538,0xf1d7a7,0x4e5150);
+  const standard = wovenSail(0x99432d,0xf5d6a2,0x3d5c60,true);
 
   function mesh(geometry, mat, parent, x, y, z, sx = 1, sy = 1, sz = 1, ry = 0) {
     const object = new THREE.Mesh(geometry, mat);
@@ -178,6 +264,25 @@ export function createWorld(THREE, textures = {}) {
     dummy.rotation.set(0, ry, rz);
     dummy.updateMatrix();
     buckets.get(key).items.push({ matrix: dummy.matrix.clone(), tint });
+  }
+  // Bake the fixed architecture into shared batches. Animated and interactive
+  // objects keep their own hierarchy so picking and the simulation still work.
+  function batchArchitecture(structure) {
+    structure.updateWorldMatrix(true, true);
+    const parts = [];
+    structure.traverse(part => { if (part.isMesh) parts.push(part); });
+    for (const part of parts) {
+      const key = 'structure-' + part.geometry.id + '-' + part.material.id;
+      if (!buckets.has(key)) buckets.set(key, {geometry:part.geometry, material:part.material, items:[]});
+      buckets.get(key).items.push({matrix:part.matrixWorld.clone()});
+      part.removeFromParent();
+    }
+  }
+  function beam(parent, mat, a, b, thickness, depth = thickness) {
+    const start = new THREE.Vector3(...a), end = new THREE.Vector3(...b);
+    const mid = start.clone().lerp(end,.5), axis = end.sub(start);
+    const bar = mesh(geometries.box,mat,parent,mid.x,mid.y,mid.z,thickness,axis.length(),depth);
+    bar.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),axis.normalize());
   }
   function obstacle(x, z, radius) {
     colliders.push({ x, z, radius });
@@ -250,9 +355,41 @@ export function createWorld(THREE, textures = {}) {
       instance('dark-box', geometries.box, materials.dark, at.x, house.position.y + height * 0.72,
         at.z, 0.32, 0.7, 0.025, angle);
     }
+    // Pigmented dado and projecting lime cornice catch the low sun.
+    const band = index%3 === 1 ? materials.patina : materials.oxblood;
+    for (const side of [-1,1]) {
+      mesh(geometries.box,band,house,side*(width/2+.20),.67,0,.055,1.17,depth+.35);
+      mesh(geometries.box,band,house,side*(doorway+flank)/2,.67,depth/2+.21,flank,1.17,.055);
+      mesh(geometries.box,materials.lime,house,side*width/2,height-.42,0,.49,.20,depth+.46);
+    }
+    mesh(geometries.box,band,house,0,.67,-depth/2-.21,width+.4,1.17,.055);
+    mesh(geometries.box,materials.lime,house,0,height-.42,depth/2,width+.5,.20,.5);
+    mesh(geometries.box,materials.lime,house,0,height-.42,-depth/2,width+.5,.20,.5);
+    // Rooftop windcatchers alternate with squat copper flues and ribbed sheds.
+    if (index===1 || index===4 || index===6) {
+      const cx = width*.19, cz = -depth*.14, top = height+(index===1 ? 3.9 : 2.25);
+      mesh(geometries.box,mat,house,cx,(height+top)/2,cz,1.72,top-height,1.62);
+      for (const side of [-1,1]) {
+        mesh(geometries.box,materials.dark,house,cx,top-.57,cz+side*.815,1.23,.84,.035);
+        mesh(geometries.box,band,house,cx,top-.56,cz+side*.85,.16,.93,.10);
+        mesh(geometries.box,materials.dark,house,cx+side*.87,top-.55,cz,.035,.8,1.10);
+      }
+      mesh(geometries.box,band,house,cx,top-.99,cz,1.87,.18,1.78);
+      mesh(geometries.box,materials.lime,house,cx,top+.11,cz,2.12,.24,1.96);
+    } else {
+      const cx = width*.22, cz = depth*.24;
+      mesh(geometries.cylinder,materials.rust,house,cx,height+.94,cz,.48,1.7,.48);
+      mesh(geometries.cone,materials.iron,house,cx,height+1.84,cz,.77,.29,.77);
+    }
+    for (let rib=0;rib<6;rib++) {
+      const at = -width*.41+rib*width*.094;
+      const ridge = mesh(geometries.box,materials.paleMetal,house,at,height+.39,-depth*.12,
+        .048,.07,depth*.76,-.08);
+      ridge.position.z -= (at+width*.18)*Math.sin(-.08);
+    }
     if (index === 0 || index === 3 || index === 6) {
-      const canopy = mesh(canopyGeometry, index === 3 ? materials.ochreCloth : materials.cloth,
-        house, 0, 3.2, depth / 2 + 1.9, width * 0.94, 1, 3.6);
+      const canopy = mesh(index===3 ? redSail : indigoSail, materials.sail,
+        house, 0, 3.38, depth / 2 + 1.9, width * 0.94, 1.3, 3.6);
       canopy.name = 'DoorAwning';
       [-width * 0.44, width * 0.44].forEach(px => {
         const at = localToWorld(px, depth / 2 + 3.55, x, z, angle);
@@ -261,6 +398,7 @@ export function createWorld(THREE, textures = {}) {
         obstacle(at.x, at.z, 0.18);
       });
     }
+    batchArchitecture(house);
     return house;
   }
   [
@@ -295,6 +433,31 @@ export function createWorld(THREE, textures = {}) {
     [3, 14, -6, 10], [-13, 4, -15, -3], [-15, -13, -15, -20]]
     .forEach((spec, index) => freestandingWall(...spec, 1.65 + (index % 3) * 0.32, true));
 
+  // The southwest gate reuses the two wall ends as its foundations. The span is
+  // entirely overhead, leaving the same opening from the squad's starting camp.
+  const gate = new THREE.Group();
+  gate.name = 'PortiqueDesCaravanes';
+  group.add(gate);
+  const posts = [[-13,4,7.4],[-6,10,5.4]];
+  posts.forEach(([x,z,h], side) => {
+    const floor = groundHeight(x,z);
+    mesh(geometries.cone,materials.adobe,gate,x,floor+1.1,z,1.1,2.2,1.1);
+    mesh(geometries.box,materials.timber,gate,x,floor+h*.5,z,.32,h,.34);
+    for (const lift of [2.4, h-1.1, h-.45]) {
+      mesh(geometries.box,materials.patina,gate,x,floor+lift,z,.43,.28,.45);
+    }
+    mesh(geometries.box,materials.iron,gate,x,floor+h-.27,z,1.65,.13,.22,.67);
+    if (side===0) mesh(standard,materials.sail,gate,x,floor+h-.86,z,2.95,1.8,2,.45);
+  });
+  const gateAnchor = [[-13,6.71,4],[-10.5,5.53,6.2],[-8.35,5.12,8],[-6,5.22,10]];
+  for (let i=1;i<gateAnchor.length;i++) {
+    beam(gate,materials.iron,gateAnchor[i-1],gateAnchor[i],.066);
+    const [x,y,z]=gateAnchor[i-1];
+    mesh(geometries.box,i%2 ? materials.oxblood : materials.patina,gate,
+      x+1.05,y-.9,z+.88,.63,1.15,.055,-.7);
+  }
+  batchArchitecture(gate);
+
   // Two water tanks and a work shelter on the north edge of the settlement.
   [[13, -24, 2.0, 4.4], [17.3, -23.5, 1.45, 3.5]].forEach(([x, z, radius, height], index) => {
     const y = groundHeight(x, z);
@@ -308,20 +471,21 @@ export function createWorld(THREE, textures = {}) {
       radius * 2 + 0.5, 0.4, radius * 2 + 0.5);
     obstacle(x, z, radius + 0.27);
   });
-  const marketRoof = mesh(canopyGeometry, materials.cloth, group, 8.5,
-    groundHeight(8.5, -6) + 3.8, -6, 7.3, 1.3, 5.3, -0.08);
+  const marketRoof = mesh(redSail, materials.sail, group, 8.5,
+    groundHeight(8.5, -6) + 4.2, -6, 7.3, 2.0, 5.3);
   marketRoof.name = 'CentralShadeSail';
-  [[5, -8.5], [12, -8.5], [5, -3.5], [12, -3.5]].forEach(([x, z]) => {
+  [[5, -8.5,4.2], [12, -8.5,4.7], [5, -3.5,3.9], [12, -3.5,4.4]].forEach(([x, z,h]) => {
     instance('timber-cylinder', geometries.cylinder, materials.timber, x,
-      groundHeight(x, z) + 1.95, z, 0.18, 3.9, 0.18);
+      groundHeight(x, z) + h/2, z, 0.18, h, 0.18);
     obstacle(x, z, 0.2);
   });
   for (let i = 0; i < 17; i++) {
-    const x = i < 9 ? 1 + (i % 3) * 1.05 : 18 + (i % 3) * 0.9;
+    const x = i < 9 ? 3.15 + (i % 3) * 1.05 : 18 + (i % 3) * 0.9;
     const z = i < 9 ? -10.3 - Math.floor(i / 3) * 0.9 : -10 - Math.floor((i - 9) / 3) * 0.85;
     const size = 0.65 + random() * 0.3;
     instance('cargo-crates', geometries.box, materials.timber, x,
       groundHeight(x, z) + size / 2, z, size, size, size, random() * 0.13);
+    obstacle(x,z,size*.55);
   }
 
   // A deliberately low-detail, animated windmill reads clearly at tactical scale.
@@ -350,6 +514,14 @@ export function createWorld(THREE, textures = {}) {
   }
   const hub = mesh(geometries.cylinder, materials.iron, rotor, 0, 0, 0.1, 0.52, 0.38, 0.52);
   hub.rotation.x = Math.PI / 2;
+  // Counterweight and tail distinguish the pump silhouette as the wheel turns.
+  const tail = new THREE.Group();
+  windmill.add(tail);
+  beam(tail,materials.iron,[0,8.57,0],[-2.9,8.8,-1.25],.16);
+  mesh(geometries.box,materials.patina,tail,-2.7,9.05,-1.18,1.5,1.15,.14,-.4);
+  beam(tail,materials.iron,[-.94,1.45,0],[.60,5.42,0],.14);
+  beam(tail,materials.iron,[.94,1.45,0],[-.60,5.42,0],.14);
+  batchArchitecture(tail);
 
   // Archives ruin: walls and columns leave an open court and a wide south entry.
   [[-36, -30, -31, -30, 3.8], [-28, -30, -24, -30, 2.7],
@@ -362,6 +534,15 @@ export function createWorld(THREE, textures = {}) {
         x, groundHeight(x, z) + h / 2, z, 0.85, h, 0.85);
       obstacle(x, z, 0.55);
     });
+  // A fractured stone oculus sits on the surviving northern lintel.
+  const archives = new THREE.Group();
+  group.add(archives);
+  archives.position.set(-29.9,groundHeight(-30,-27.5)+5.84,-27.6);
+  const oculus = new THREE.TorusGeometry(2.12,.37,5,12,Math.PI*1.71);
+  const wheel = mesh(oculus,materials.paleAdobe,archives,0,0,0,1,1,.85);
+  wheel.rotation.z=.87;
+  mesh(geometries.box,materials.oxblood,archives,0,-1.21,0,3.5,.20,1.05);
+  batchArchitecture(archives);
   instance('ruin-beam', geometries.box, materials.paleAdobe, -30,
     groundHeight(-30, -27.5) + 3.95, -27.5, 7.7, 0.6, 1.1, 0, null, 0.09);
   for (let i = 0; i < 15; i++) {
@@ -387,6 +568,17 @@ export function createWorld(THREE, textures = {}) {
   }
   const fallenPanel = mesh(geometries.box, materials.rust, wreck, 3.5, 0.3, 3.7, 3.6, 0.12, 2.7, 0.4);
   fallenPanel.rotation.x = 0.08;
+  // Collapsed cargo derrick and torn exhaust stacks sit within the hull footprint.
+  beam(wreck,materials.iron,[-3.6,2,0],[-2.55,6.9,.25],.26);
+  beam(wreck,materials.iron,[-1.45,2,0],[-2.55,6.9,.25],.25);
+  beam(wreck,materials.rust,[-2.55,6.9,.25],[2.95,4.85,.65],.36);
+  beam(wreck,materials.iron,[-2.55,6.48,.25],[2.82,4.85,.65],.13);
+  mesh(geometries.box,materials.iron,wreck,2.88,4.42,.64,.06,.88,.06);
+  for (let i=0;i<3;i++) {
+    const exhaust=mesh(geometries.cylinder,materials.rust,wreck,.15+i*.9,3.92,0,.53,1.65+i*.28,.53);
+    exhaust.rotation.z=-.28;
+  }
+  batchArchitecture(wreck);
   [-3.6, -1.8, 0, 1.8, 3.6].forEach(x => {
     const at = localToWorld(x, 0, 28, 24, -0.47);
     obstacle(at.x, at.z, 2.22);
@@ -410,6 +602,15 @@ export function createWorld(THREE, textures = {}) {
   instance('iron-cylinder', geometries.cylinder, materials.iron, -26,
     wellY + 2.6, 25, 0.04, 2.1, 0.04);
   mesh(geometries.cone, materials.patina, group, -26, wellY + 1.44, 25, 0.62, 0.65, 0.62);
+  const wellShade = new THREE.Group();
+  group.add(wellShade);
+  for (const x of [-27.8,-24.2]) {
+    mesh(geometries.box,materials.timber,wellShade,x,wellY+4.08,25,.17,.17,3.75);
+    beam(wellShade,materials.timber,[x,wellY+2.95,25],[x,wellY+4.03,26.42],.13);
+    beam(wellShade,materials.timber,[x,wellY+2.95,25],[x,wellY+4.03,23.58],.13);
+  }
+  mesh(indigoSail,materials.sail,wellShade,-26,wellY+4.1,25,4.24,1.18,3.9);
+  batchArchitecture(wellShade);
   obstacle(-26, 25, 1.85);
 
   const resources = [
@@ -490,11 +691,36 @@ export function createWorld(THREE, textures = {}) {
     const z = Math.sin(angle) * radius;
     const width = 7 + random() * 9;
     const height = 7 + random() * 15;
-    const base = groundHeight(x, z) - 2;
+    const base = groundHeight(x, z) - 4;
+    const depth = width * (0.65 + random() * 0.35);
+    instance('mesa-scree', geometries.mesa, materials.stone, x,
+      base + height*.12, z, width*1.36, height*.46, depth*1.38, angle);
     instance('distant-mesa', geometries.mesa, materials.darkStone, x,
-      base + height / 2, z, width, height, width * (0.65 + random() * 0.35), angle);
+      base + height*.52, z, width, height*.91, depth, angle);
+    instance('mesa-strata', geometries.mesa, materials.shale, x,
+      base + height*.73, z, width*1.035, height*.075, depth*1.035, angle);
     instance('mesa-cap', geometries.mesa, materials.stone, x,
-      base + height + 0.8, z, width * 1.05, 1.6, width * 0.8, angle);
+      base + height, z, width*1.02, 1.5, depth*1.03, angle);
+    if (i%3===1) {
+      instance('distant-mesa',geometries.mesa,materials.darkStone,x+width*.25,
+        base+height*1.19,z,width*.4,height*.43,depth*.44,angle);
+      instance('mesa-cap',geometries.mesa,materials.stone,x+width*.25,
+        base+height*1.40,z,width*.42,1.3,depth*.46,angle);
+    }
+  }
+  // Thin fragments and grass tufts settle along the edges of the paths.
+  for (const route of trails) {
+    for (let i=1;i<route.length;i++) {
+      const [ax,az]=route[i-1], [bx,bz]=route[i];
+      const length=Math.hypot(bx-ax,bz-az), nx=(az-bz)/length, nz=(bx-ax)/length;
+      for (let grain=0; grain<length*1.4; grain++) {
+        const t=random(), side=(random()<.5 ? -1 : 1)*(1.7+2.2*random());
+        const x=ax+(bx-ax)*t+nx*side, z=az+(bz-az)*t+nz*side;
+        const size=.09+random()*.28;
+        instance('path-gravel',geometries.rock,materials.darkStone,x,groundHeight(x,z)+.023,z,
+          size,.045+size*.17,size*.64,random()*6.28);
+      }
+    }
   }
 
   const brushGeometry = new THREE.BufferGeometry();
@@ -527,7 +753,7 @@ export function createWorld(THREE, textures = {}) {
   for (const [name, bucket] of buckets) {
     const batch = new THREE.InstancedMesh(bucket.geometry, bucket.material, bucket.items.length);
     batch.name = name;
-    batch.castShadow = name !== 'dry-brush' && name !== 'small-rocks';
+    batch.castShadow = name !== 'dry-brush' && name !== 'small-rocks' && name !== 'path-gravel';
     batch.receiveShadow = true;
     bucket.items.forEach((item, index) => {
       batch.setMatrixAt(index, item.matrix);

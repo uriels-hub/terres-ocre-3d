@@ -33,6 +33,14 @@
         <div class="objective-rule" aria-hidden="true"><span></span><span></span><span></span></div>
       </details>
       </section>
+      <section class="encounter-panel" aria-label="Rencontre à l’entrée sud">
+        <div class="encounter-info">
+          <h2>Pillard du relais</h2>
+          <p id="enemy-status">En garde à la porte sud</p>
+        </div>
+        <button id="attack-button" type="button" aria-keyshortcuts="T" title="Ordonner à la sélection d’attaquer le pillard · T">Attaquer</button>
+        <meter id="enemy-health" min="0" max="100" value="100" aria-label="Vie du pillard"></meter>
+      </section>
     </div>
 
     <aside class="supplies" aria-label="Ressources et temps">
@@ -76,17 +84,17 @@
         <button class="unit-card selected" data-unit="0" type="button" aria-pressed="true" aria-label="Sélectionner Nara, prospectrice" title="Sélectionner Nara · 1" aria-keyshortcuts="1">
           <span class="unit-portrait"><svg aria-hidden="true"><use href="#portrait-nara"/></svg><span class="unit-number">01</span></span>
           <span class="unit-info"><strong>Nara</strong><span class="unit-role">Prospectrice</span><span class="unit-status" id="unit-status-0">Au repos</span></span>
-          <span class="selection-indicator" aria-hidden="true"></span>
+          <meter class="unit-health" id="unit-health-0" min="0" max="100" value="100" aria-label="Vie de Nara"></meter>
         </button>
         <button class="unit-card selected" data-unit="1" type="button" aria-pressed="true" aria-label="Sélectionner Brak, convoyeur" title="Sélectionner Brak · 2" aria-keyshortcuts="2">
           <span class="unit-portrait"><svg aria-hidden="true"><use href="#portrait-brak"/></svg><span class="unit-number">02</span></span>
           <span class="unit-info"><strong>Brak</strong><span class="unit-role">Convoyeur</span><span class="unit-status" id="unit-status-1">Au repos</span></span>
-          <span class="selection-indicator" aria-hidden="true"></span>
+          <meter class="unit-health" id="unit-health-1" min="0" max="100" value="100" aria-label="Vie de Brak"></meter>
         </button>
         <button class="unit-card selected" data-unit="2" type="button" aria-pressed="true" aria-label="Sélectionner Ivo, automate" title="Sélectionner Ivo · 3" aria-keyshortcuts="3">
           <span class="unit-portrait"><svg aria-hidden="true"><use href="#portrait-ivo"/></svg><span class="unit-number">03</span></span>
           <span class="unit-info"><strong>Ivo</strong><span class="unit-role">Automate</span><span class="unit-status" id="unit-status-2">Au repos</span></span>
-          <span class="selection-indicator" aria-hidden="true"></span>
+          <meter class="unit-health" id="unit-health-2" min="0" max="100" value="100" aria-label="Vie d’Ivo"></meter>
         </button>
       </div>
     </section>
@@ -99,7 +107,7 @@
     <aside class="minimap-panel" aria-label="Carte de la vallée">
       <div class="minimap-heading"><span class="eyebrow">Vallée des vents</span><span class="north-mark">N</span></div>
       <canvas id="minimap" width="180" height="150" aria-label="Position de l’escouade et lieux de la vallée" title="Cliquer sur la carte pour y centrer la caméra"></canvas>
-      <p class="map-legend"><span><i class="legend-dot squad-dot"></i>Escouade</span><span><i class="legend-dot reserve-dot"></i>Réserves</span></p>
+      <p class="map-legend"><span><i class="legend-dot squad-dot"></i>Escouade</span><span><i class="legend-dot reserve-dot"></i>Réserves</span><span><i class="legend-dot enemy-dot"></i>Pillard</span></p>
     </aside>
 
     <p class="command-hint"><span>Clic sol <b>déplacer</b></span><span>Clic personnage <b>sélectionner</b></span><span>Maj + clic <b>ajouter</b></span><span>Molette <b>zoom</b></span><span>Glisser droit / flèches <b>vue 360°</b></span><span>WASD / ZQSD <b>déplacer la vue</b></span></p>
@@ -127,6 +135,7 @@
     <dl class="help-commands">
       <div><dt>Clic sur le sol</dt><dd>Déplacer la sélection</dd></div>
       <div><dt>Clic sur un personnage</dt><dd>Sélectionner ce voyageur</dd></div>
+      <div><dt>Clic sur le pillard ou <kbd>T</kbd></dt><dd>Envoyer la sélection au corps à corps. Un clic au sol permet de se replier. Éloignez-vous pour semer le pillard.</dd></div>
       <div><dt><kbd>Maj</kbd> + clic</dt><dd>Ajouter à la sélection</dd></div>
       <div><dt><kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd></dt><dd>Sélectionner Nara, Brak ou Ivo</dd></div>
       <div><dt><kbd>G</kbd></dt><dd>Sélectionner toute l’escouade</dd></div>
@@ -141,7 +150,7 @@
       <div><dt><kbd>Espace</kbd></dt><dd>Mettre en pause ou reprendre</dd></div>
       <div><dt>Écran tactile</dt><dd>Toucher le sol pour déplacer. Glisser avec deux doigts pour tourner et incliner la vue ; pincer pour zoomer.</dd></div>
     </dl>
-    <p class="help-note">Les portraits permettent aussi de sélectionner vos voyageurs. « Tous » rassemble la sélection ; « Centrer » retrouve votre escouade.</p>
+    <p class="help-note">Le pillard garde la porte sud. Son cercle orange signale une frappe imminente. Un voyageur à terre reste hors combat pour le reste de l’expédition.</p>
     <div class="help-save"><p>La progression est sauvegardée automatiquement dans ce navigateur. Recommencer efface cette expédition locale.</p><button id="reset-button" type="button">Recommencer l’expédition</button></div>
   </dialog>
   <section id="error-panel" class="error-panel" role="alert" hidden><h2>L’expédition ne peut pas démarrer</h2><p id="error-message"></p><p>Vous pouvez recharger la page pour réessayer.</p></section>

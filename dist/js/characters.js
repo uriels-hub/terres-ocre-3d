@@ -18,13 +18,84 @@ function geometries(THREE) {
   return cache;
 }
 
+// Keep the pivots independently animated while submitting the costume in a few
+// material passes. Every vertex is rigidly attached to its original pivot.
+function bindCostume(THREE, root, body, materials) {
+  root.updateMatrixWorld(true);
+  const bones = [];
+  const parts = [];
+  body.traverse(object => {
+    if (object.isBone) bones.push(object);
+    if (object.isMesh) parts.push(object);
+  });
+  const boneIndex = new Map(bones.map((bone, index) => [bone, index]));
+  const cloth = [materials.cloth, materials.pale, materials.darkCloth];
+  const metal = [materials.metal, materials.darkMetal, materials.green];
+  const batches = [[], [], [], []];
+  for (const part of parts) {
+    const mat = part.material;
+    const bucket = cloth.includes(mat) ? 1 : metal.includes(mat) ? 2 : mat === materials.optic ? 3 : 0;
+    batches[bucket].push(part);
+  }
+  const palette = [
+    { roughness: .9 }, { map: materials.cloth.map, roughness: 1 },
+    { map: materials.metal.map, metalness: .36, roughness: .78 },
+    { emissive: 0x7cd2ac, emissiveIntensity: .85 }
+  ];
+  const geometry = new THREE.BufferGeometry();
+  const positions = [], normals = [], uvs = [], colors = [], indices = [], joints = [], weights = [];
+  const outputMaterials = [];
+  for (let bucket = 0; bucket < batches.length; bucket++) {
+    if (!batches[bucket].length) continue;
+    const start = indices.length;
+    for (const part of batches[bucket]) {
+      const transform = part.geometry.clone().applyMatrix4(part.matrixWorld);
+      const { position, normal, uv } = transform.attributes;
+      const offset = positions.length / 3;
+      positions.push(...position.array);
+      normals.push(...normal.array);
+      uvs.push(...uv.array);
+      const color = part.material.color;
+      const joint = boneIndex.get(part.parent);
+      for (let i = 0; i < position.count; i++) {
+        colors.push(color.r, color.g, color.b);
+        joints.push(joint, 0, 0, 0);
+        weights.push(1, 0, 0, 0);
+      }
+      const index = transform.index;
+      for (let i = 0; i < (index ? index.count : position.count); i++) {
+        indices.push(offset + (index ? index.getX(i) : i));
+      }
+      part.removeFromParent();
+      transform.dispose();
+    }
+    geometry.addGroup(start, indices.length - start, outputMaterials.length);
+    outputMaterials.push(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, ...palette[bucket] }));
+  }
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  geometry.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(joints, 4));
+  geometry.setAttribute('skinWeight', new THREE.Float32BufferAttribute(weights, 4));
+  geometry.setIndex(indices);
+  const skin = new THREE.SkinnedMesh(geometry, outputMaterials);
+  skin.name = 'costume';
+  skin.castShadow = true;
+  skin.receiveShadow = true;
+  root.add(skin);
+  skin.bind(new THREE.Skeleton(bones));
+  // Covers the extended arm and the prone pose for both picking and culling.
+  skin.boundingSphere = new THREE.Sphere(new THREE.Vector3(0,.5,0), 3);
+}
+
 /**
  * @param {object} THREE Injected Three.js namespace (r170).
  * @param {object} config { role, textures, color, npc }
  * @returns {{group: object, animate: Function, setSelected: Function}}
  */
 export function createCharacter(THREE, config = {}) {
-  const role = ['prospector', 'guard', 'automaton'].includes(config.role)
+  const role = ['prospector', 'guard', 'automaton', 'raider'].includes(config.role)
     ? config.role : 'prospector';
   const textures = config.textures || {};
   const geo = geometries(THREE);
@@ -33,7 +104,7 @@ export function createCharacter(THREE, config = {}) {
   group.userData.role = role;
   group.userData.npc = Boolean(config.npc);
 
-  const visual = new THREE.Group();
+  const visual = new THREE.Bone();
   visual.name = 'animated-body';
   group.add(visual);
 
@@ -42,18 +113,20 @@ export function createCharacter(THREE, config = {}) {
   });
   const teamColor = typeof config.color === 'number' ? config.color : 0xc5aa7d;
   const material = {
-    cloth: makeMaterial(role === 'guard' ? 0x82735b : 0xc29b62, { map: textures.cloth || null }),
+    cloth: makeMaterial(role === 'raider' ? 0x682c29 : role === 'guard' ? 0x4a6471 : 0xcfa355, { map: textures.cloth || null }),
     pale: makeMaterial(0xc3b99b, { map: textures.cloth || null }),
     darkCloth: makeMaterial(0x575447, { map: textures.cloth || null }),
     leather: makeMaterial(0x715a3e),
     darkLeather: makeMaterial(0x413c32),
     metal: makeMaterial(0x68665b, { map: textures.rust || null, metalness: 0.48, roughness: 0.8 }),
     darkMetal: makeMaterial(0x353d3b, { metalness: 0.58, roughness: 0.66 }),
-    green: makeMaterial(0x879182, { map: textures.rust || null, metalness: 0.38 }),
+    green: makeMaterial(0x77a69c, { map: textures.rust || null, metalness: 0.38 }),
     skin: makeMaterial(role === 'guard' ? 0xa87e5d : 0xbd9670),
     hair: makeMaterial(0x383027),
     black: makeMaterial(0x151d1d, { roughness: 0.65 }),
     accent: makeMaterial(teamColor, { roughness: 0.8 }),
+    mantle: makeMaterial(({ prospector: 0xe6a439, guard: 0x456477, automaton: 0x79b9b3, raider: 0xd64632 })[role]),
+    bone: makeMaterial(0xe5d7ab),
     optic: makeMaterial(0xadd5bc, { emissive: 0x49765c, emissiveIntensity: 0.5, roughness: 0.4, metalness: 0.15 }),
   };
 
@@ -68,7 +141,7 @@ export function createCharacter(THREE, config = {}) {
     return mesh;
   }
   function node(parent, x = 0, y = 0, z = 0) {
-    const child = new THREE.Group();
+    const child = new THREE.Bone();
     child.position.set(x, y, z);
     parent.add(child);
     return child;
@@ -84,6 +157,16 @@ export function createCharacter(THREE, config = {}) {
   }
   function rivet(parent, x, y, z, size = 0.018) {
     return part(parent, 'sphere', material.pale, [x, y, z], [size, size, size * 0.55]);
+  }
+  // A folded, double-sided pennant with a swallowtail cut into the free end.
+  function pennant(parent, mat, a, b, c, d, notch) {
+    const raw = [a, b, notch, a, notch, d, b, c, notch];
+    const geom = new THREE.BufferGeometry();
+    const vertices = [...raw, ...[...raw].reverse()].flat();
+    geom.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    geom.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(vertices.length / 3 * 2), 2));
+    geom.computeVertexNormals();
+    parent.add(new THREE.Mesh(geom, mat));
   }
   function backpack(parent, heavy = false, robot = false) {
     const z = heavy ? -0.35 : -0.26;
@@ -180,8 +263,28 @@ export function createCharacter(THREE, config = {}) {
     }
     const leftHand = humanArm(-1, heavy);
     const rightHand = humanArm(1, heavy);
-    backpack(visual, heavy);
-    if (heavy) {
+    if (role !== 'raider') backpack(visual, heavy);
+    if (role === 'raider') {
+      // A split red standard and a pale mask read against the cliffs from either side.
+      part(head, 'sphere', material.mantle, [0, 0.075, -0.015], [0.186, 0.178, 0.159]);
+      part(head, 'taper', material.bone, [0, -0.035, 0.111], [0.132, 0.22, 0.075], [0, 0, Math.PI]);
+      part(head, 'box', material.black, [0, 0.012, 0.177], [0.202, 0.047, 0.025], [0, 0, 0.08]);
+      part(visual, 'taper', material.mantle, [-0.055, 1.49, -0.01], [0.385, 0.21, 0.25], [0, 0, 0.16]);
+      part(visual, 'taper', material.mantle, [0, 1.04, 0], [0.25, 0.13, 0.20]);
+      for (const s of [-1, 1]) {
+        pennant(visual, material.mantle, [s*.15,1.48,-.17], [s*.37,1.4,-.16],
+          [s*.42,.72,-.26], [s*.13,.84,-.3], [s*.28,.98,-.32]);
+      }
+      bar(visual, [.05,1,-.19], [-.41,2.19,-.22], .045, material.darkMetal);
+      pennant(visual, material.mantle, [-.41,2.2,-.22], [-.75,2.14,-.25],
+        [-.79,1.88,-.33], [-.33,2.0,-.23], [-.58,2.02,-.3]);
+      const cleaver = node(rightHand, 0, -.28, .075);
+      cleaver.rotation.x = Math.PI / 2.8;
+      part(cleaver, 'cylinder', material.darkLeather, [0, .055, 0], [.033,.22,.033]);
+      part(cleaver, 'box', material.darkMetal, [0,.17,0], [.19,.05,.09]);
+      part(cleaver, 'box', material.metal, [0,.43,0], [.15,.50,.043], [0,0,-.07]);
+      part(cleaver, 'cone', material.bone, [.03,.73,0], [.081,.15,.027], [0,0,-.22]);
+    } else if (heavy) {
       part(head, 'sphere', material.hair, [0, 0.1, -0.015], [0.15, 0.105, 0.13]);
       part(head, 'sphere', material.hair, [0, -0.085, 0.075], [0.105, 0.105, 0.085]);
       for (const y of [1.19, 1.35, 1.49]) {
@@ -189,6 +292,22 @@ export function createCharacter(THREE, config = {}) {
         for (const x of [-0.19, 0.19]) rivet(visual, x, y, 0.231);
       }
       part(visual, 'box', material.accent, [-0.21, 1.4, 0.235], [0.045, 0.2, 0.017]);
+      part(head, 'sphere', material.metal, [0,.105,0], [.18,.14,.167]);
+      part(head, 'cylinder', material.darkMetal, [0,.09,0], [.216,.037,.196]);
+      part(head, 'box', material.bone, [0,.17,.09], [.05,.105,.112]);
+      part(visual, 'taper', material.mantle, [0,1.49,-.012], [.422,.14,.236]);
+      pennant(visual, material.mantle, [-.31,1.5,-.16], [.29,1.49,-.15],
+        [.36,.68,-.33], [-.38,.57,-.37], [.07,.81,-.38]);
+      const shield = node(leftHand,-.1,-.09,0);
+      part(shield, 'cylinder', material.darkMetal, [0,0,.03], [.33,.085,.39], [Math.PI/2,.10,.1]);
+      part(shield, 'cylinder', material.mantle, [0,0,.075], [.295,.044,.355], [Math.PI/2,.10,.1]);
+      part(shield, 'box', material.bone, [0,0,.107], [.067,.62,.022], [0,0,-.33]);
+      part(shield, 'sphere', material.metal, [0,0,.13], [.105,.105,.065]);
+      const baton = node(rightHand,0,-.28,.08);
+      baton.rotation.x = 1.24;
+      part(baton, 'cylinder', material.leather, [0,.04,0], [.045,.22,.045]);
+      part(baton, 'taper', material.metal, [0,.35,0], [.065,.42,.072]);
+      part(baton, 'cylinder', material.bone, [0,.56,0], [.086,.11,.085]);
       const blade = node(visual, -0.33, 0.92, -0.1);
       blade.rotation.z = -0.3;
       part(blade, 'box', material.darkLeather, [0, -0.27, 0], [0.105, 0.76, 0.075]);
@@ -201,6 +320,11 @@ export function createCharacter(THREE, config = {}) {
       part(head, 'box', material.pale, [0, -0.085, 0.115], [0.21, 0.075, 0.05], [0.04, 0, 0]);
       part(head, 'cylinder', material.darkCloth, [0, 0.14, 0], [0.32, 0.035, 0.255], [0, 0, -0.04]);
       part(head, 'taper', material.cloth, [0, 0.205, -0.01], [0.18, 0.12, 0.15]);
+      part(visual, 'taper', material.mantle, [0,1.4,-.01], [.35,.25,.218], [0,0,-.09]);
+      part(visual, 'taper', material.bone, [0,1.55,0], [.18,.11,.165]);
+      pennant(visual, material.mantle, [-.24,1.46,-.2], [.2,1.53,-.22],
+        [.19,.92,-.36], [-.32,.88,-.34], [-.03,1.02,-.42]);
+      part(head, 'cylinder', material.mantle, [0,.16,0], [.34,.031,.279], [0,0,-.04]);
       part(head, 'box', material.darkLeather, [0, 0.175, 0.14], [0.24, 0.045, 0.045]);
       for (const x of [-0.072, 0.072]) {
         part(head, 'cylinder', material.darkMetal, [x, 0.18, 0.17], [0.048, 0.032, 0.048], [Math.PI / 2, 0, 0]);
@@ -275,10 +399,16 @@ export function createCharacter(THREE, config = {}) {
     part(head, 'box', material.pale, [0, 0.105, -0.005], [0.48, 0.045, 0.3], [0.03, 0, -0.045]);
     part(head, 'box', material.black, [0.025, 0.005, 0.145], [0.35, 0.07, 0.025]);
     part(head, 'box', material.optic, [0.025, 0.005, 0.161], [0.25, 0.019, 0.012]);
+    part(head, 'box', material.mantle, [0,-.035,-.137], [.38,.065,.035]);
+    part(visual, 'box', material.mantle, [.225,1.37,-.08], [.145,.41,.30], [0,0,.14]);
+    part(visual, 'cylinder', material.bone, [.23,1.56,-.08], [.092,.072,.145]);
     part(head, 'cylinder', material.darkMetal, [-0.22, 0.055, -0.015], [0.025, 0.37, 0.025]);
     part(head, 'sphere', material.accent, [-0.22, 0.245, -0.015], [0.035, 0.035, 0.035]);
     part(head, 'box', material.metal, [0.12, -0.12, 0.025], [0.08, 0.08, 0.08]);
     for (const side of [-1, 1]) { robotLeg(side); robotArm(side); }
+    const piston = arms.find(arm => arm.side > 0).elbow;
+    part(piston, 'taper', material.mantle, [0,-.33,.028], [.135,.27,.14]);
+    part(piston, 'box', material.bone, [0,-.449,.038], [.22,.112,.22]);
     backpack(visual, false, true);
     bar(visual, [-0.13, 1.63, 0.145], [0.12, 1.08, 0.16], 0.055, material.leather, 0.025);
     part(visual, 'box', material.accent, [-0.125, 1.45, 0.185], [0.06, 0.13, 0.02]);
@@ -287,11 +417,12 @@ export function createCharacter(THREE, config = {}) {
 
   if (role === 'automaton') buildAutomaton();
   else buildHuman(role === 'guard');
+  bindCostume(THREE, group, visual, material);
 
   const selection = new THREE.Group();
   selection.name = 'selection-indicator';
   const selectMaterial = new THREE.MeshBasicMaterial({
-    color: config.npc ? 0xd2b77f : 0xe0c58b,
+    color: role === 'raider' ? 0xfa6554 : config.npc ? 0xd2b77f : 0xe0c58b,
     transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide,
   });
   const ring = new THREE.Mesh(geo.ring, selectMaterial);
@@ -311,28 +442,51 @@ export function createCharacter(THREE, config = {}) {
     group.userData.selected = Boolean(value);
   }
 
-  function animate(elapsed, speed = 0, selected = false) {
+  function ease(fraction) {
+    const t = Math.max(0, Math.min(1, fraction));
+    return t*t*(3-2*t);
+  }
+
+  function animate(elapsed, speed = 0, selected = false, action = 'idle', progress = 0) {
     const time = Number.isFinite(elapsed) ? elapsed : 0;
+    const t = Math.max(0, Math.min(1, Number.isFinite(progress) ? progress : 0));
     const movement = Math.min(1, Math.abs(Number.isFinite(speed) ? speed : 0) / 1.8);
     const phase = time * (5 + movement * 3);
-    const idle = Math.sin(time * 1.4) * 0.007;
-    visual.position.y = movement * Math.abs(Math.sin(phase)) * 0.025 + idle;
-    visual.rotation.z = Math.sin(phase) * movement * 0.018;
+    // Start the downswing just before impact, then follow through from the same pose.
+    const release = action === 'windup' ? .72*ease((t-.8)/.2) : .72+.28*ease(t/.22);
+    const windup = action === 'windup' ? ease(t/.74)*(1-release) : action === 'attack' ? 1-release : 0;
+    const strike = action === 'windup' ? release : action === 'attack' ? release*(1-ease((t-.22)/.78)) : 0;
+    const recoil = action === 'hit' ? (1-ease(t)) * (.8 + .2*Math.sin(t*Math.PI*2)) : 0;
+    const fall = action === 'ko' ? ease(t) : 0;
+    const gait = movement * (1 - Math.max(windup, strike, recoil, fall));
+    const idle = Math.sin(time*1.4)*.008*(1-fall);
+    const restingHeight = role === 'guard' ? .39 : role === 'raider' ? .31 : .33;
+    visual.position.set(.04*windup-.08*recoil, gait*Math.abs(Math.sin(phase))*.04 + idle +
+      .025*windup+.012*strike+.017*recoil+restingHeight*fall, -.12*windup+.33*strike-.22*recoil);
+    visual.rotation.set(-.15*windup+.23*strike-.28*recoil-1.49*fall,
+      -.52*windup+.56*strike+.2*recoil, Math.sin(phase)*gait*.022+.09*windup-.12*strike+.15*recoil+.14*fall);
     for (const leg of legs) {
-      const swing = Math.sin(phase + (leg.side > 0 ? Math.PI : 0)) * movement;
-      leg.pivot.rotation.x = swing * 0.48;
-      leg.knee.rotation.x = Math.max(0, -swing) * 0.55;
+      const swing = Math.sin(phase + (leg.side > 0 ? Math.PI : 0)) * gait;
+      leg.pivot.rotation.x = swing*.55 - .16*(windup+recoil) + leg.side*(.26*windup-.28*strike+.12*fall);
+      leg.pivot.rotation.z = leg.side*(.09*windup+.07*strike+.12*fall);
+      leg.knee.rotation.x = Math.max(0,-swing)*.62 + .34*windup+.19*recoil+.18*fall;
     }
     for (const arm of arms) {
-      const swing = Math.sin(phase + (arm.side < 0 ? Math.PI : 0)) * movement;
-      arm.pivot.rotation.x = swing * 0.4 + Math.sin(time * 1.2 + arm.side) * 0.014;
-      arm.elbow.rotation.x = -0.09 - Math.max(0, swing) * 0.15;
+      const right = arm.side > 0;
+      const swing = Math.sin(phase + (right ? 0 : Math.PI)) * gait;
+      const rest = Math.sin(time*1.2 + arm.side)*.025*(1-fall);
+      arm.pivot.rotation.set(swing*.44+rest +
+        (right ? -.92*windup-1.47*strike+.98*fall : -.55*windup+.47*strike) - .45*recoil,
+        right ? -.76*windup+.68*strike : .24*windup,
+        arm.side*(.075 + (right ? 1.18*windup+.34*strike : .32*windup+.21*strike)+.54*recoil+.66*fall));
+      arm.elbow.rotation.x = -.13-Math.max(0,swing)*.17 -
+        (right ? 1.72*windup+.10*strike : .77*windup+.29*strike) - .47*recoil-.24*fall;
     }
-    if (head) {
-      head.rotation.y = Math.sin(time * 0.62) * (movement > 0.05 ? 0.025 : 0.075);
-    }
+    head.rotation.set(-.12*windup+.14*strike-.22*recoil+.11*fall,
+      Math.sin(time*.62)*(gait>.05 ? .035 : .11)*(1-fall)+.35*windup-.31*strike, -.16*recoil-.25*fall);
     marker.position.y = (role === 'automaton' ? 2.43 : 2.28) + Math.sin(time * 2.3) * 0.035;
     marker.rotation.y = time * 0.65;
+    marker.visible = action !== 'ko';
     setSelected(selected);
   }
 
